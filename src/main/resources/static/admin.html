@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Admin Dashboard - QuizApp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <div id="navbar-root"></div>
+
+    <div class="container">
+      <div class="card">
+        <h1>🛠️ Admin Dashboard</h1>
+        <p class="muted">
+          Kategorileri ve soru havuzunu yönet, quiz oluştur ve quizlere havuzdan soru ekle.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2 id="category-form-title">Yeni Kategori Ekle</h2>
+        <div id="category-form-alert"></div>
+        <form id="category-form">
+          <input type="hidden" id="category-edit-id" />
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label for="category-name">Kategori Adı</label>
+              <input id="category-name" class="form-control" placeholder="Örn: Müzik" required maxlength="80" />
+            </div>
+            <div class="form-group">
+              <label for="category-desc">Açıklama (opsiyonel)</label>
+              <input id="category-desc" class="form-control" maxlength="300" />
+            </div>
+          </div>
+          <div style="display:flex; gap:.5rem">
+            <button type="submit" class="btn btn-primary" id="category-submit-btn">Kategoriyi Kaydet</button>
+            <button type="button" class="btn btn-secondary" id="category-reset-btn">Formu Temizle</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Mevcut Kategoriler</h2>
+        <div id="category-table"><p class="muted">Yükleniyor...</p></div>
+      </div>
+
+      <div class="card">
+        <h2 id="question-form-title">Soru Havuzuna Yeni Soru Ekle</h2>
+        <p class="muted" style="margin-top:0">
+          Sorular bir <strong>kategoriye</strong> ait olarak havuzda saklanır. Eklendikten sonra,
+          aşağıdaki "Quiz İçerik Yönetimi" bölümünden istediğin quizlere ekleyebilirsin (aynı kategoride olmak şartıyla).
+        </p>
+        <div id="question-form-alert"></div>
+        <form id="question-form">
+          <input type="hidden" id="q-id" />
+          <div class="form-group">
+            <label for="q-category">Kategori</label>
+            <select id="q-category" class="form-control" required>
+              <option value="">-- Kategori seç --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="q-text">Soru Metni</label>
+            <textarea id="q-text" class="form-control" required></textarea>
+          </div>
+          <div class="grid grid-2">
+            <div class="form-group"><label for="q-a">A şıkkı</label><input id="q-a" class="form-control" required /></div>
+            <div class="form-group"><label for="q-b">B şıkkı</label><input id="q-b" class="form-control" required /></div>
+            <div class="form-group"><label for="q-c">C şıkkı</label><input id="q-c" class="form-control" required /></div>
+            <div class="form-group"><label for="q-d">D şıkkı</label><input id="q-d" class="form-control" required /></div>
+          </div>
+          <div class="form-group">
+            <label for="q-correct">Doğru Cevap</label>
+            <select id="q-correct" class="form-control" required>
+              <option value="A">A</option><option value="B">B</option>
+              <option value="C">C</option><option value="D">D</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:.5rem">
+            <button type="submit" class="btn btn-primary" id="question-submit-btn">Soruyu Kaydet</button>
+            <button type="button" class="btn btn-secondary" id="question-reset-btn">Formu Temizle</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Havuzdaki Sorular</h2>
+        <div class="form-group" style="max-width:300px">
+          <label for="filter-pool-category">Kategoriye göre filtrele</label>
+          <select id="filter-pool-category" class="form-control">
+            <option value="">-- Tümü --</option>
+          </select>
+        </div>
+        <div id="questions-table"><p class="muted">Yükleniyor...</p></div>
+      </div>
+
+      <div class="card">
+        <h2 id="quiz-form-title">Yeni Quiz Oluştur</h2>
+        <div id="quiz-form-alert"></div>
+        <form id="quiz-form">
+          <input type="hidden" id="quiz-edit-id" />
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label for="quiz-title">Quiz Başlığı</label>
+              <input id="quiz-title" class="form-control" placeholder="Örn: Spor Quizi 2" required maxlength="120" />
+            </div>
+            <div class="form-group">
+              <label for="quiz-category">Kategori</label>
+              <select id="quiz-category" class="form-control" required>
+                <option value="">-- Kategori seç --</option>
+              </select>
+              <p class="muted" style="font-size:.8rem; margin:.25rem 0 0 0">
+                Sadece mevcut kategorilerden seçilebilir.
+              </p>
+            </div>
+          </div>
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label for="quiz-time">Süre Limiti (saniye)</label>
+              <input id="quiz-time" type="number" class="form-control" min="10" value="60" required />
+            </div>
+            <div class="form-group">
+              <label for="quiz-desc">Açıklama (opsiyonel)</label>
+              <input id="quiz-desc" class="form-control" maxlength="500" />
+            </div>
+          </div>
+          <div style="display:flex; gap:.5rem">
+            <button type="submit" class="btn btn-primary" id="quiz-submit-btn">Quizi Kaydet</button>
+            <button type="button" class="btn btn-secondary" id="quiz-reset-btn">Formu Temizle</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Mevcut Quizler</h2>
+        <div id="quiz-table"><p class="muted">Yükleniyor...</p></div>
+      </div>
+
+      <div class="card">
+        <h2>Quiz İçerik Yönetimi</h2>
+        <p class="muted" style="margin-top:0">
+          Aşağıdan bir quiz seç. Solda quizin sahip olduğu sorular, sağda aynı kategoride
+          eklenebilecek soru havuzu listelenir.
+        </p>
+        <div class="form-group" style="max-width:400px">
+          <label for="manage-quiz">Quiz</label>
+          <select id="manage-quiz" class="form-control">
+            <option value="">-- Yönetilecek quizi seç --</option>
+          </select>
+        </div>
+
+        <div id="manage-area" style="display:none">
+          <div class="grid grid-2">
+            <div>
+              <h3 style="margin:0 0 .5rem 0">Bu Quizdeki Sorular</h3>
+              <div id="quiz-questions-list"><p class="muted">Yükleniyor...</p></div>
+            </div>
+            <div>
+              <h3 style="margin:0 0 .5rem 0">Eklenebilecek Sorular</h3>
+              <div id="available-questions-list"><p class="muted">Yükleniyor...</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Kullanıcılar</h2>
+        <p class="muted" id="users-note" style="margin-top:0"></p>
+        <div id="users-table"><p class="muted">Yükleniyor...</p></div>
+      </div>
+
+      <div class="card">
+        <h2>Tüm Kullanıcı Sonuçları</h2>
+        <div style="max-width:800px; margin: 0 auto 1rem;">
+          <canvas id="results-chart" height="120"></canvas>
+        </div>
+        <div id="all-results-table"><p class="muted">Yükleniyor...</p></div>
+      </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
+    <script>
+      let editingCategoryId = null;
+      let editingQuizId = null;
+      let editingQuestionId = null;
+      let categoriesCache = [];
+      let quizzesCache = [];
+      let questionsCache = [];
+      let currentManageQuizId = null;
+      let currentUser = null;
+
+      (async () => {
+        const user = auth.requireLogin({ adminOnly: true });
+        if (!user) return;
+        currentUser = user;
+        renderNavbar(user);
+
+        await refreshCategories();
+        await refreshQuestions();
+        await refreshQuizzes();
+        await refreshUsers();
+        await refreshResults();
+
+        document.getElementById("category-form").addEventListener("submit", onCategorySubmit);
+        document.getElementById("category-reset-btn").addEventListener("click", resetCategoryForm);
+        document.getElementById("quiz-form").addEventListener("submit", onQuizSubmit);
+        document.getElementById("quiz-reset-btn").addEventListener("click", resetQuizForm);
+        document.getElementById("question-form").addEventListener("submit", onQuestionSubmit);
+        document.getElementById("question-reset-btn").addEventListener("click", resetQuestionForm);
+        document.getElementById("filter-pool-category").addEventListener("change", renderQuestionsTable);
+        document.getElementById("manage-quiz").addEventListener("change", onManageQuizChange);
+      })();
+
+      function resetCategoryForm() {
+        editingCategoryId = null;
+        document.getElementById("category-edit-id").value = "";
+        document.getElementById("category-form").reset();
+        document.getElementById("category-form-title").textContent = "Yeni Kategori Ekle";
+        document.getElementById("category-submit-btn").textContent = "Kategoriyi Kaydet";
+        clearAlert("category-form-alert");
+      }
+
+      async function onCategorySubmit(e) {
+        e.preventDefault();
+        clearAlert("category-form-alert");
+        const payload = {
+          categoryName: document.getElementById("category-name").value.trim(),
+          description: document.getElementById("category-desc").value.trim() || null,
+        };
+        try {
+          if (editingCategoryId) {
+            await api.updateCategory(editingCategoryId, payload);
+            showAlert("category-form-alert", "Kategori güncellendi.", "success");
+          } else {
+            await api.createCategory(payload);
+            showAlert("category-form-alert", "Yeni kategori eklendi.", "success");
+          }
+          resetCategoryForm();
+          await refreshCategories();
+          await refreshQuizzes();
+        } catch (err) {
+          showAlert("category-form-alert", formatError(err));
+        }
+      }
+
+      function editCategory(c) {
+        editingCategoryId = c.id;
+        document.getElementById("category-edit-id").value = c.id;
+        document.getElementById("category-name").value = c.categoryName;
+        document.getElementById("category-desc").value = c.description || "";
+        document.getElementById("category-form-title").textContent = `Kategoriyi Güncelle (#${c.id})`;
+        document.getElementById("category-submit-btn").textContent = "Değişiklikleri Kaydet";
+        document.getElementById("category-form").scrollIntoView({ behavior: "smooth" });
+      }
+
+      async function deleteCategory(id) {
+        if (!confirm("Bu kategoriyi sileceğine emin misin?")) return;
+        try {
+          await api.deleteCategory(id);
+          await refreshCategories();
+          await refreshQuizzes();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      async function refreshCategories() {
+        const tableEl = document.getElementById("category-table");
+        try {
+          categoriesCache = await api.getCategories();
+
+          const opts = categoriesCache
+            .map(c => `<option value="${c.id}">${escapeHtml(c.categoryName)}</option>`)
+            .join("");
+          document.getElementById("quiz-category").innerHTML =
+            `<option value="">-- Kategori seç --</option>` + opts;
+          document.getElementById("q-category").innerHTML =
+            `<option value="">-- Kategori seç --</option>` + opts;
+          document.getElementById("filter-pool-category").innerHTML =
+            `<option value="">-- Tümü --</option>` + opts;
+
+          if (!categoriesCache.length) {
+            tableEl.innerHTML = `<p class="muted">Henüz kategori yok. Yukarıdaki formdan ekle.</p>`;
+            return;
+          }
+
+          tableEl.innerHTML = `
+            <table class="table">
+              <thead>
+                <tr><th>ID</th><th>Ad</th><th>Açıklama</th><th>Quiz Sayısı</th><th></th></tr>
+              </thead>
+              <tbody>
+                ${categoriesCache.map(c => `
+                  <tr>
+                    <td>${c.id}</td>
+                    <td>${escapeHtml(c.categoryName)}</td>
+                    <td class="muted">${escapeHtml(c.description || "-")}</td>
+                    <td>${c.quizCount || 0}</td>
+                    <td style="white-space:nowrap">
+                      <button class="btn btn-sm btn-secondary" onclick='editCategory(${JSON.stringify(c)})'>Düzenle</button>
+                      <button class="btn btn-sm btn-danger" onclick="deleteCategory(${c.id})">Sil</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `;
+        } catch (err) {
+          tableEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+        }
+      }
+
+      function resetQuestionForm() {
+        editingQuestionId = null;
+        document.getElementById("q-id").value = "";
+        document.getElementById("question-form").reset();
+        document.getElementById("question-form-title").textContent = "Soru Havuzuna Yeni Soru Ekle";
+        document.getElementById("question-submit-btn").textContent = "Soruyu Kaydet";
+        clearAlert("question-form-alert");
+      }
+
+      async function onQuestionSubmit(e) {
+        e.preventDefault();
+        clearAlert("question-form-alert");
+        const catVal = document.getElementById("q-category").value;
+        if (!catVal) {
+          showAlert("question-form-alert", "Lütfen bir kategori seç.");
+          return;
+        }
+        const payload = {
+          categoryId: parseInt(catVal, 10),
+          questionText: document.getElementById("q-text").value.trim(),
+          optionA: document.getElementById("q-a").value.trim(),
+          optionB: document.getElementById("q-b").value.trim(),
+          optionC: document.getElementById("q-c").value.trim(),
+          optionD: document.getElementById("q-d").value.trim(),
+          correctAnswer: document.getElementById("q-correct").value,
+        };
+        try {
+          if (editingQuestionId) {
+            await api.updateQuestion(editingQuestionId, payload);
+            showAlert("question-form-alert", "Soru güncellendi.", "success");
+          } else {
+            await api.createQuestion(payload);
+            showAlert("question-form-alert", "Yeni soru havuza eklendi.", "success");
+          }
+          resetQuestionForm();
+          await refreshQuestions();
+          if (currentManageQuizId) await renderManageArea();
+        } catch (err) {
+          showAlert("question-form-alert", formatError(err));
+        }
+      }
+
+      function editQuestion(q) {
+        editingQuestionId = q.id;
+        document.getElementById("q-id").value = q.id;
+        document.getElementById("q-category").value = q.categoryId;
+        document.getElementById("q-text").value = q.questionText;
+        document.getElementById("q-a").value = q.optionA;
+        document.getElementById("q-b").value = q.optionB;
+        document.getElementById("q-c").value = q.optionC;
+        document.getElementById("q-d").value = q.optionD;
+        document.getElementById("q-correct").value = q.correctAnswer;
+        document.getElementById("question-form-title").textContent = `Soruyu Güncelle (#${q.id})`;
+        document.getElementById("question-submit-btn").textContent = "Değişiklikleri Kaydet";
+        document.getElementById("question-form").scrollIntoView({ behavior: "smooth" });
+      }
+
+      async function deleteQuestion(id) {
+        if (!confirm("Bu soruyu silmek istediğine emin misin? Bağlı olduğu tüm quizlerden de düşer.")) return;
+        try {
+          await api.deleteQuestion(id);
+          await refreshQuestions();
+          await refreshQuizzes();
+          if (currentManageQuizId) await renderManageArea();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      async function refreshQuestions() {
+        try {
+          questionsCache = await api.getAllQuestionsForAdmin();
+          renderQuestionsTable();
+        } catch (err) {
+          document.getElementById("questions-table").innerHTML =
+            `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+        }
+      }
+
+      function renderQuestionsTable() {
+        const tableEl = document.getElementById("questions-table");
+        const filter = document.getElementById("filter-pool-category").value;
+        const filtered = filter
+          ? questionsCache.filter(q => String(q.categoryId) === filter)
+          : questionsCache;
+
+        if (!filtered.length) {
+          tableEl.innerHTML = `<p class="muted">Görüntülenecek soru yok.</p>`;
+          return;
+        }
+
+        tableEl.innerHTML = `
+          <table class="table">
+            <thead>
+              <tr><th>ID</th><th>Soru</th><th>Kategori</th><th>Quizlerde</th><th>Doğru</th><th></th></tr>
+            </thead>
+            <tbody>
+              ${filtered.map(q => `
+                <tr>
+                  <td>${q.id}</td>
+                  <td>${escapeHtml(q.questionText)}</td>
+                  <td>${escapeHtml(q.categoryName || "")}</td>
+                  <td>${q.quizCount || 0}</td>
+                  <td><strong>${escapeHtml(q.correctAnswer || "")}</strong></td>
+                  <td style="white-space:nowrap">
+                    <button class="btn btn-sm btn-secondary" onclick='editQuestion(${JSON.stringify(q)})'>Düzenle</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteQuestion(${q.id})">Sil</button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      }
+
+      function resetQuizForm() {
+        editingQuizId = null;
+        document.getElementById("quiz-edit-id").value = "";
+        document.getElementById("quiz-form").reset();
+        document.getElementById("quiz-time").value = "60";
+        document.getElementById("quiz-form-title").textContent = "Yeni Quiz Oluştur";
+        document.getElementById("quiz-submit-btn").textContent = "Quizi Kaydet";
+        clearAlert("quiz-form-alert");
+      }
+
+      async function onQuizSubmit(e) {
+        e.preventDefault();
+        clearAlert("quiz-form-alert");
+        const catVal = document.getElementById("quiz-category").value;
+        if (!catVal) {
+          showAlert("quiz-form-alert", "Lütfen bir kategori seç.");
+          return;
+        }
+        const payload = {
+          title: document.getElementById("quiz-title").value.trim(),
+          categoryId: parseInt(catVal, 10),
+          description: document.getElementById("quiz-desc").value.trim() || null,
+          timeLimitSeconds: parseInt(document.getElementById("quiz-time").value, 10),
+        };
+        try {
+          if (editingQuizId) {
+            await api.updateQuiz(editingQuizId, payload);
+            showAlert("quiz-form-alert", "Quiz güncellendi.", "success");
+          } else {
+            await api.createQuiz(payload);
+            showAlert("quiz-form-alert", "Yeni quiz oluşturuldu.", "success");
+          }
+          resetQuizForm();
+          await refreshQuizzes();
+          await refreshCategories();
+          if (currentManageQuizId) await renderManageArea();
+        } catch (err) {
+          showAlert("quiz-form-alert", formatError(err));
+        }
+      }
+
+      function editQuiz(q) {
+        editingQuizId = q.id;
+        document.getElementById("quiz-edit-id").value = q.id;
+        document.getElementById("quiz-title").value = q.title;
+        document.getElementById("quiz-category").value = q.categoryId || "";
+        document.getElementById("quiz-desc").value = q.description || "";
+        document.getElementById("quiz-time").value = q.timeLimitSeconds || 60;
+        document.getElementById("quiz-form-title").textContent = `Quizi Güncelle (#${q.id})`;
+        document.getElementById("quiz-submit-btn").textContent = "Değişiklikleri Kaydet";
+        document.getElementById("quiz-form").scrollIntoView({ behavior: "smooth" });
+      }
+
+      async function deleteQuiz(id) {
+        if (!confirm("Bu quizi sileceğine emin misin? Sorular havuzda kalır, sadece bu quizden çıkarılır.")) return;
+        try {
+          await api.deleteQuiz(id);
+          await refreshQuizzes();
+          await refreshCategories();
+          await refreshQuestions();
+          if (currentManageQuizId === id) {
+            currentManageQuizId = null;
+            document.getElementById("manage-quiz").value = "";
+            document.getElementById("manage-area").style.display = "none";
+          } else if (currentManageQuizId) {
+            await renderManageArea();
+          }
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      async function refreshQuizzes() {
+        const tableEl = document.getElementById("quiz-table");
+        try {
+          quizzesCache = await api.getAllQuizzes();
+
+          const opts = quizzesCache
+            .map(q => `<option value="${q.id}">${escapeHtml(q.title)} (${escapeHtml(q.categoryName || "-")})</option>`)
+            .join("");
+          document.getElementById("manage-quiz").innerHTML =
+            `<option value="">-- Yönetilecek quizi seç --</option>` + opts;
+          if (currentManageQuizId) {
+            document.getElementById("manage-quiz").value = currentManageQuizId;
+          }
+
+          if (!quizzesCache.length) {
+            tableEl.innerHTML = `<p class="muted">Henüz quiz yok.</p>`;
+            return;
+          }
+
+          tableEl.innerHTML = `
+            <table class="table">
+              <thead>
+                <tr><th>ID</th><th>Başlık</th><th>Kategori</th><th>Süre</th><th>Soru</th><th></th></tr>
+              </thead>
+              <tbody>
+                ${quizzesCache.map(q => `
+                  <tr>
+                    <td>${q.id}</td>
+                    <td>${escapeHtml(q.title)}</td>
+                    <td>${escapeHtml(q.categoryName || "-")}</td>
+                    <td>${q.timeLimitSeconds}s</td>
+                    <td>${q.questionCount || 0}</td>
+                    <td style="white-space:nowrap">
+                      <button class="btn btn-sm btn-primary" onclick="openManage(${q.id})">Soruları Yönet</button>
+                      <button class="btn btn-sm btn-secondary" onclick='editQuiz(${JSON.stringify(q)})'>Düzenle</button>
+                      <button class="btn btn-sm btn-danger" onclick="deleteQuiz(${q.id})">Sil</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `;
+        } catch (err) {
+          tableEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+        }
+      }
+
+      function openManage(quizId) {
+        currentManageQuizId = quizId;
+        document.getElementById("manage-quiz").value = String(quizId);
+        renderManageArea();
+        document.getElementById("manage-quiz").scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      async function onManageQuizChange(e) {
+        const val = e.target.value;
+        currentManageQuizId = val ? parseInt(val, 10) : null;
+        if (!currentManageQuizId) {
+          document.getElementById("manage-area").style.display = "none";
+          return;
+        }
+        await renderManageArea();
+      }
+
+      async function renderManageArea() {
+        if (!currentManageQuizId) return;
+        document.getElementById("manage-area").style.display = "block";
+        const inListEl = document.getElementById("quiz-questions-list");
+        const availListEl = document.getElementById("available-questions-list");
+        inListEl.innerHTML = `<p class="muted">Yükleniyor...</p>`;
+        availListEl.innerHTML = `<p class="muted">Yükleniyor...</p>`;
+
+        try {
+          const [inQuiz, available] = await Promise.all([
+            api.getQuizQuestionsAdmin(currentManageQuizId),
+            api.getAvailableQuestions(currentManageQuizId),
+          ]);
+
+          inListEl.innerHTML = inQuiz.length
+            ? inQuiz.map(q => questionRow(q, "remove")).join("")
+            : `<p class="muted">Bu quizde henüz soru yok. Sağdan ekle.</p>`;
+
+          availListEl.innerHTML = available.length
+            ? available.map(q => questionRow(q, "add")).join("")
+            : `<p class="muted">Eklenebilecek soru kalmadı. Havuza yeni soru ekleyebilirsin.</p>`;
+        } catch (err) {
+          inListEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+          availListEl.innerHTML = "";
+        }
+      }
+
+      function questionRow(q, action) {
+        const btn = action === "add"
+          ? `<button class="btn btn-sm btn-primary" onclick="addToQuiz(${q.id})">Quize Ekle</button>`
+          : `<button class="btn btn-sm btn-danger" onclick="removeFromQuiz(${q.id})">Çıkar</button>`;
+        return `
+          <div class="card" style="padding:.75rem; margin-bottom:.5rem; box-shadow:none">
+            <div style="display:flex; gap:.5rem; align-items:flex-start; justify-content:space-between">
+              <div style="flex:1">
+                <div style="font-weight:600">#${q.id} — ${escapeHtml(q.questionText)}</div>
+                <div class="muted" style="font-size:.8rem; margin-top:.2rem">
+                  Doğru: <strong>${escapeHtml(q.correctAnswer || "")}</strong>
+                  • Kategori: ${escapeHtml(q.categoryName || "")}
+                  • ${q.quizCount || 0} quizde kullanılıyor
+                </div>
+              </div>
+              ${btn}
+            </div>
+          </div>
+        `;
+      }
+
+      async function addToQuiz(questionId) {
+        try {
+          await api.addQuestionToQuiz(currentManageQuizId, questionId);
+          await refreshQuizzes();
+          await refreshQuestions();
+          await renderManageArea();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      async function removeFromQuiz(questionId) {
+        try {
+          await api.removeQuestionFromQuiz(currentManageQuizId, questionId);
+          await refreshQuizzes();
+          await refreshQuestions();
+          await renderManageArea();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      async function refreshUsers() {
+        const tableEl = document.getElementById("users-table");
+        const noteEl = document.getElementById("users-note");
+        const isSuper = auth.isSuperAdmin();
+
+        noteEl.textContent = isSuper
+          ? "Süper admin olarak istediğin kullanıcıyı admin yapabilir veya admin yetkisini geri alabilirsin."
+          : "Promote/demote işlemleri yalnızca süper admin tarafından yapılabilir.";
+
+        try {
+          const users = await api.getAllUsers();
+          if (!users.length) {
+            tableEl.innerHTML = `<p class="muted">Kullanıcı yok.</p>`;
+            return;
+          }
+
+          tableEl.innerHTML = `
+            <table class="table">
+              <thead>
+                <tr><th>ID</th><th>Ad</th><th>E-posta</th><th>Rol</th><th></th></tr>
+              </thead>
+              <tbody>
+                ${users.map(u => `
+                  <tr>
+                    <td>${u.id}</td>
+                    <td>${escapeHtml(u.name)}${u.id === currentUser.id ? ' <span class="badge">sen</span>' : ""}</td>
+                    <td>${escapeHtml(u.email)}</td>
+                    <td>
+                      <span class="badge ${u.role === "ADMIN" ? "badge-admin" : ""}">${escapeHtml(u.role)}</span>
+                      ${u.superAdmin ? ' <span class="badge badge-admin" title="Sistem ana admini">SÜPER</span>' : ""}
+                    </td>
+                    <td style="white-space:nowrap">
+                      ${renderUserActions(u, isSuper)}
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `;
+        } catch (err) {
+          tableEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+        }
+      }
+
+      function renderUserActions(u, isSuper) {
+        if (u.superAdmin) {
+          return `<span class="muted" style="font-size:.8rem">değiştirilemez</span>`;
+        }
+        const isSelf = u.id === currentUser.id;
+        const parts = [];
+        if (isSuper && !isSelf) {
+          if (u.role === "ADMIN") {
+            parts.push(`<button class="btn btn-sm btn-secondary" onclick="demote(${u.id})">Admin yetkisini al</button>`);
+          } else {
+            parts.push(`<button class="btn btn-sm btn-primary" onclick="promote(${u.id})">Admin yap</button>`);
+          }
+        }
+        
+        if (!isSelf) {
+          parts.push(`<button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Sil</button>`);
+        }
+        if (!parts.length) {
+          return `<span class="muted" style="font-size:.8rem">-</span>`;
+        }
+        return parts.join(" ");
+      }
+
+      async function promote(id) {
+        if (!confirm("Bu kullanıcıyı admin yapmak istediğine emin misin?")) return;
+        try {
+          await api.promoteUser(id);
+          await refreshUsers();
+        } catch (err) {
+          alert(friendlyError(err, "Kullanıcı admin yapılamadı."));
+        }
+      }
+
+      async function demote(id) {
+        if (!confirm("Bu kullanıcının admin yetkisini geri almak istediğine emin misin?")) return;
+        try {
+          await api.demoteUser(id);
+          await refreshUsers();
+        } catch (err) {
+          alert(friendlyError(err, "Admin yetkisi geri alınamadı."));
+        }
+      }
+
+      async function deleteUser(id) {
+        if (!confirm("Bu kullanıcıyı silmek istediğine emin misin?")) return;
+        try {
+          await api.deleteUser(id);
+          await refreshUsers();
+          await refreshResults();
+        } catch (err) {
+          alert(friendlyError(err, "Kullanıcı silinemedi."));
+        }
+      }
+
+      function friendlyError(err, fallback) {
+        const msg = (err && err.message) || "";
+        if (err && err.status >= 500) return fallback;
+        if (!msg || msg.length > 200) return fallback;
+        return msg;
+      }
+
+      async function refreshResults() {
+        const tableEl = document.getElementById("all-results-table");
+        try {
+          const results = await api.getAllResults();
+          if (!results.length) {
+            tableEl.innerHTML = `<p class="muted">Henüz sonuç yok.</p>`;
+            return;
+          }
+
+          tableEl.innerHTML = `
+            <table class="table">
+              <thead>
+                <tr><th>Tarih</th><th>Kullanıcı</th><th>Quiz</th><th>Kategori</th><th>Doğru/Toplam</th><th>Puan</th></tr>
+              </thead>
+              <tbody>
+                ${results.map(r => `
+                  <tr>
+                    <td>${formatDate(r.createdAt)}</td>
+                    <td>${escapeHtml(r.userName)}</td>
+                    <td>${escapeHtml(r.quizTitle || "-")}</td>
+                    <td>${escapeHtml(r.category || "-")}</td>
+                    <td>${r.correctAnswers} / ${r.totalQuestions}</td>
+                    <td><strong>${r.score}</strong></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `;
+
+          const byQuiz = {};
+          results.forEach(r => {
+            const key = r.quizTitle || "-";
+            if (!byQuiz[key]) byQuiz[key] = { sum: 0, count: 0 };
+            byQuiz[key].sum += r.score;
+            byQuiz[key].count += 1;
+          });
+          const labels = Object.keys(byQuiz);
+          const data = labels.map(k => Math.round(byQuiz[k].sum / byQuiz[k].count));
+
+          new Chart(document.getElementById("results-chart"), {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [{
+                label: "Ortalama Puan",
+                data,
+                backgroundColor: "#4f46e5",
+              }],
+            },
+            options: {
+              scales: { y: { min: 0, max: 100 } },
+              plugins: { title: { display: true, text: "Quiz bazlı ortalama puan" } },
+            },
+          });
+        } catch (err) {
+          tableEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+        }
+      }
+
+      function formatError(err) {
+        let msg = err.message || "Hata";
+        if (err.body && err.body.fieldErrors) {
+          msg = Object.values(err.body.fieldErrors).join(" • ");
+        }
+        return msg;
+      }
+    </script>
+  </body>
+</html>

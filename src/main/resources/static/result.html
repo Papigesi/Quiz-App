@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sonuç - QuizApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="card">
+      <h1 style="text-align:center">Quiz Tamamlandı 🎉</h1>
+      <p class="muted" style="text-align:center" id="info-line"></p>
+
+      <div id="auto-banner"></div>
+
+      <div class="score-big" id="score-value">--</div>
+      <p class="muted" style="text-align:center; margin-top:-1rem">
+        <span id="correct-count">--</span> / <span id="total-count">--</span> doğru cevap
+      </p>
+
+      <div class="chart-container">
+        <canvas id="result-chart"></canvas>
+      </div>
+
+      <div style="display:flex; justify-content:center; gap:.5rem; margin-top:1.5rem; flex-wrap:wrap">
+        <a href="/index.html" class="btn btn-primary">Yeni Quiz Çöz</a>
+        <a href="/history.html" class="btn btn-secondary">Geçmişimi Gör</a>
+        <a href="/leaderboard.html" class="btn btn-secondary">Liderlik Tablosu</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (() => {
+      const user = auth.requireLogin();
+      if (!user) return;
+      renderNavbar(user);
+
+      const params = new URLSearchParams(window.location.search);
+      const score = parseInt(params.get("score") || "0", 10);
+      const total = parseInt(params.get("total") || "0", 10);
+      const correct = parseInt(params.get("correct") || "0", 10);
+      const quizTitle = params.get("quizTitle") || "";
+      const category = params.get("category") || "";
+      const auto = params.get("auto") === "1";
+
+      const wrong = Math.max(total - correct, 0);
+
+      const parts = [];
+      if (quizTitle) parts.push(quizTitle);
+      if (category) parts.push(`Kategori: ${category}`);
+      document.getElementById("info-line").textContent = parts.join(" • ");
+      document.getElementById("score-value").textContent = score;
+      document.getElementById("correct-count").textContent = correct;
+      document.getElementById("total-count").textContent = total;
+
+      if (auto) {
+        document.getElementById("auto-banner").innerHTML =
+          `<div class="alert alert-info">Süre dolduğu için quiz otomatik gönderildi.</div>`;
+      }
+
+      const ctx = document.getElementById("result-chart").getContext("2d");
+      new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: ["Doğru", "Yanlış / Boş"],
+          datasets: [{
+            data: [correct, wrong],
+            backgroundColor: ["#16a34a", "#dc2626"],
+            borderWidth: 0,
+          }],
+        },
+        options: {
+          plugins: {
+            legend: { position: "bottom" },
+            title: { display: true, text: "Cevap Dağılımı" },
+          },
+        },
+      });
+    })();
+  </script>
+</body>
+</html>

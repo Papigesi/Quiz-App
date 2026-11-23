@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Geçmişim - QuizApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Geçmiş Sonuçlarım</h1>
+      <p class="muted">Çözdüğün quizlerin listesi ve genel başarı grafiğin.</p>
+    </div>
+
+    <div class="card">
+      <h2>Skor Eğilimi</h2>
+      <div style="max-width:700px; margin: 0 auto;">
+        <canvas id="trend-chart" height="120"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tüm Sonuçlar</h2>
+      <div id="results-table">
+        <p class="muted">Yükleniyor...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async () => {
+      const user = auth.requireLogin();
+      if (!user) return;
+      renderNavbar(user);
+
+      const tableEl = document.getElementById("results-table");
+      try {
+        const results = await api.getUserHistory(user.id);
+        if (!results.length) {
+          tableEl.innerHTML = `<p class="muted">Henüz bir quiz çözmedin. <a href="/index.html">Hemen başla.</a></p>`;
+          return;
+        }
+
+        tableEl.innerHTML = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Quiz</th>
+                <th>Kategori</th>
+                <th>Doğru/Toplam</th>
+                <th>Puan</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${results.map(r => `
+                <tr>
+                  <td>${formatDate(r.createdAt)}</td>
+                  <td>${escapeHtml(r.quizTitle || "-")}</td>
+                  <td>${escapeHtml(r.category || "-")}</td>
+                  <td>${r.correctAnswers} / ${r.totalQuestions}</td>
+                  <td><span class="badge ${r.score >= 80 ? "badge-success" : ""}">${r.score}</span></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+
+        const chronological = [...results].reverse();
+        new Chart(document.getElementById("trend-chart"), {
+          type: "line",
+          data: {
+            labels: chronological.map(r => formatDate(r.createdAt)),
+            datasets: [{
+              label: "Puan",
+              data: chronological.map(r => r.score),
+              borderColor: "#4f46e5",
+              backgroundColor: "rgba(79,70,229,.15)",
+              tension: 0.25,
+              fill: true,
+            }],
+          },
+          options: {
+            scales: { y: { min: 0, max: 100 } },
+            plugins: { legend: { display: false } },
+          },
+        });
+      } catch (err) {
+        tableEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

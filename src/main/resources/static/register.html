@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kayıt Ol - QuizApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container-narrow">
+    <div class="card">
+      <h1 style="text-align:center; color:var(--primary)">Kayıt Ol</h1>
+      <p class="muted" style="text-align:center; margin-top:0">Yeni hesap oluştur</p>
+
+      <div id="alert-box"></div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label for="name">Ad Soyad</label>
+          <input id="name" type="text" class="form-control" required minlength="2" />
+        </div>
+
+        <div class="form-group">
+          <label for="email">E-posta</label>
+          <input id="email" type="email" class="form-control" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Şifre (en az 8 karakter)</label>
+          <input id="password" type="password" class="form-control" required minlength="8" />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Kayıt Ol</button>
+      </form>
+
+      <p style="text-align:center; margin-top:1rem; margin-bottom:0">
+        Zaten hesabın var mı? <a href="/login.html">Giriş yap</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    if (auth.getUser()) window.location.href = "/index.html";
+
+    document.getElementById("register-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearAlert("alert-box");
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      try {
+        await api.register(name, email, password);
+        const user = await api.login(email, password);
+        auth.setUser(user);
+        window.location.href = "/index.html";
+      } catch (err) {
+        let msg = err.message || "Kayıt başarısız";
+        if (err.body && err.body.fieldErrors) {
+          msg = Object.values(err.body.fieldErrors).join(" • ");
+        }
+        showAlert("alert-box", msg);
+      }
+    });
+  </script>
+</body>
+</html>

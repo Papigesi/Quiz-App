@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Anasayfa - QuizApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Hoş geldin, <span id="user-name"></span> 👋</h1>
+      <p class="muted">Aşağıdan bir quiz seç ve çözmeye başla. Süre, her quiz için ayrı tanımlanmıştır; süre dolduğunda quiz otomatik gönderilir.</p>
+    </div>
+
+    <div id="quiz-groups"></div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async () => {
+      const user = auth.requireLogin();
+      if (!user) return;
+      if (user.role === "ADMIN") {
+        window.location.href = "/admin.html";
+        return;
+      }
+      renderNavbar(user);
+      document.getElementById("user-name").textContent = user.name;
+
+      const root = document.getElementById("quiz-groups");
+      try {
+        const quizzes = await api.getAllQuizzes();
+        if (!quizzes.length) {
+          root.innerHTML = `<div class="card"><p class="muted">Henüz quiz yok. Admin'in quiz oluşturmasını bekle.</p></div>`;
+          return;
+        }
+
+        const grouped = {};
+        quizzes.forEach(q => {
+          const cat = q.categoryName || "Diğer";
+          (grouped[cat] = grouped[cat] || []).push(q);
+        });
+
+        root.innerHTML = Object.entries(grouped).map(([category, list]) => `
+          <div class="card">
+            <h2>${escapeHtml(category)}</h2>
+            <div class="grid grid-2" style="margin-top:1rem">
+              ${list.map(q => `
+                <a class="category-card" href="/quiz.html?quizId=${q.id}">
+                  <h3>${escapeHtml(q.title)}</h3>
+                  <p class="muted" style="margin:.25rem 0 .5rem 0">
+                    ${q.description ? escapeHtml(q.description) : "&nbsp;"}
+                  </p>
+                  <div style="display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap">
+                    <span class="badge">${q.questionCount || 0} soru</span>
+                    <span class="badge">${q.timeLimitSeconds}s</span>
+                  </div>
+                </a>
+              `).join("")}
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        root.innerHTML = `<div class="card"><div class="alert alert-danger">Quizler yüklenemedi: ${escapeHtml(err.message)}</div></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

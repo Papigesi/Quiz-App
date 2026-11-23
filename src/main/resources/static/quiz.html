@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz - QuizApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="card">
+      <div class="quiz-header">
+        <div>
+          <h1 style="margin:0" id="quiz-title">Quiz</h1>
+          <p class="muted" style="margin:.25rem 0 0 0" id="meta-info"></p>
+        </div>
+        <div class="timer" id="timer">--:--</div>
+      </div>
+      <div class="progress-bar"><div class="progress-bar-fill" id="progress" style="width:0%"></div></div>
+
+      <div id="alert-box"></div>
+      <div id="questions"></div>
+
+      <div style="display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem">
+        <a href="/index.html" class="btn btn-secondary">Vazgeç</a>
+        <button id="submit-btn" class="btn btn-primary">Quizi Bitir</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async () => {
+      const user = auth.requireLogin();
+      if (!user) return;
+      renderNavbar(user);
+
+      const params = new URLSearchParams(window.location.search);
+      const quizId = params.get("quizId");
+      if (!quizId) {
+        window.location.href = "/index.html";
+        return;
+      }
+
+      let quiz, questions = [];
+      try {
+        [quiz, questions] = await Promise.all([
+          api.getQuiz(quizId),
+          api.getQuizQuestions(quizId),
+        ]);
+      } catch (err) {
+        showAlert("alert-box", "Quiz yüklenemedi: " + err.message);
+        return;
+      }
+
+      document.getElementById("quiz-title").textContent = quiz.title;
+      const timeLimit = quiz.timeLimitSeconds || 60;
+      document.getElementById("meta-info").textContent =
+        `Kategori: ${quiz.categoryName || "-"} • ${questions.length} soru • süre ${timeLimit} saniye`;
+
+      if (!questions.length) {
+        showAlert("alert-box", "Bu quizde henüz soru yok.", "info");
+        document.getElementById("submit-btn").disabled = true;
+        return;
+      }
+
+      const answers = {};
+      const container = document.getElementById("questions");
+      container.innerHTML = questions.map((q, idx) => `
+        <div class="question-card" data-qid="${q.id}">
+          <div class="question-text">${idx + 1}. ${escapeHtml(q.questionText)}</div>
+          ${["A", "B", "C", "D"].map(letter => `
+            <label class="option-row">
+              <input type="radio" name="q${q.id}" value="${letter}" />
+              <strong>${letter})</strong> ${escapeHtml(q["option" + letter])}
+            </label>
+          `).join("")}
+        </div>
+      `).join("");
+
+      function updateProgress() {
+        const answered = Object.keys(answers).length;
+        const pct = Math.round((answered / questions.length) * 100);
+        document.getElementById("progress").style.width = pct + "%";
+      }
+
+      container.addEventListener("change", (e) => {
+        const input = e.target;
+        if (input.type !== "radio") return;
+        const card = input.closest(".question-card");
+        const qid = card.getAttribute("data-qid");
+        answers[qid] = input.value;
+        card.querySelectorAll(".option-row").forEach(r => r.classList.remove("selected"));
+        input.closest(".option-row").classList.add("selected");
+        updateProgress();
+      });
+
+      let submitted = false;
+      async function submitQuiz(autoSubmit = false) {
+        if (submitted) return;
+        submitted = true;
+        document.getElementById("submit-btn").disabled = true;
+
+        try {
+          const result = await api.submitQuiz(user.id, quiz.id, answers);
+          const params = new URLSearchParams({
+            resultId: result.id,
+            score: result.score,
+            total: result.totalQuestions,
+            correct: result.correctAnswers,
+            quizTitle: result.quizTitle || quiz.title,
+            category: result.category || quiz.categoryName || "",
+            auto: autoSubmit ? "1" : "0",
+          });
+          window.location.href = "/result.html?" + params.toString();
+        } catch (err) {
+          submitted = false;
+          document.getElementById("submit-btn").disabled = false;
+          showAlert("alert-box", "Sonuç gönderilemedi: " + err.message);
+        }
+      }
+
+      document.getElementById("submit-btn").addEventListener("click", () => {
+        const answered = Object.keys(answers).length;
+        if (answered < questions.length) {
+          if (!confirm(`${questions.length - answered} soruyu boş bıraktın. Yine de gönderelim mi?`)) return;
+        }
+        submitQuiz(false);
+      });
+
+      let remaining = timeLimit;
+      const timerEl = document.getElementById("timer");
+      function tick() {
+        const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+        const ss = String(remaining % 60).padStart(2, "0");
+        timerEl.textContent = `${mm}:${ss}`;
+        timerEl.classList.toggle("warning", remaining <= 20 && remaining > 10);
+        timerEl.classList.toggle("danger", remaining <= 10);
+        if (remaining <= 0) {
+          clearInterval(timer);
+          submitQuiz(true);
+          return;
+        }
+        remaining--;
+      }
+      tick();
+      const timer = setInterval(tick, 1000);
+    })();
+  </script>
+</body>
+</html>

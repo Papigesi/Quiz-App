@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Liderlik Tablosu - QuizApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="card">
+      <h1>🏆 Liderlik Tablosu</h1>
+      <p class="muted">
+        Her kategori için ayrı sıralama. Her kullanıcının o kategorideki <strong>en yüksek puanı</strong> dikkate alınır.
+      </p>
+    </div>
+
+    <div class="card" id="summary-card" style="display:none">
+      <h2>Her Kategorinin Lideri</h2>
+      <p class="muted" style="margin-top:0">Bu kategoride zirvedeki kullanıcılar ve puanları.</p>
+      <div style="max-width:800px; margin: 0 auto;">
+        <canvas id="summary-chart" height="180"></canvas>
+      </div>
+    </div>
+
+    <div id="category-boards"><div class="card"><p class="muted">Yükleniyor...</p></div></div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async () => {
+      const user = auth.requireLogin();
+      if (!user) return;
+      renderNavbar(user);
+
+      const root = document.getElementById("category-boards");
+      try {
+        const board = await api.getLeaderboard();
+        const categories = Object.keys(board);
+
+        if (!categories.length) {
+          root.innerHTML = `<div class="card"><p class="muted">Henüz hiçbir kategoride veri yok. İlk quizi çözen sen ol!</p></div>`;
+          return;
+        }
+
+        renderSummary(board, categories);
+        renderCategoryBoards(root, board, categories, user);
+      } catch (err) {
+        root.innerHTML = `<div class="card"><div class="alert alert-danger">${escapeHtml(err.message)}</div></div>`;
+      }
+    })();
+
+    function renderSummary(board, categories) {
+      const card = document.getElementById("summary-card");
+      const leaders = categories
+        .map(cat => ({ cat, entry: board[cat][0] }))
+        .filter(x => x.entry);
+
+      if (!leaders.length) return;
+      card.style.display = "block";
+
+      new Chart(document.getElementById("summary-chart"), {
+        type: "bar",
+        data: {
+          labels: leaders.map(l => l.cat),
+          datasets: [{
+            label: "Lider puanı",
+            data: leaders.map(l => l.entry.score),
+            backgroundColor: "#4f46e5",
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          scales: { x: { min: 0, max: 100 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const l = leaders[ctx.dataIndex];
+                  return `${l.entry.userName} — ${l.entry.score} puan (${l.entry.quizTitle || ""})`;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderCategoryBoards(root, board, categories, user) {
+      root.innerHTML = categories.map(cat => {
+        const entries = board[cat];
+        return `
+          <div class="card">
+            <h2 style="margin-bottom:.25rem">${escapeHtml(cat)}</h2>
+            <p class="muted" style="margin-top:0">${entries.length} oyuncu</p>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Sıra</th>
+                  <th>Kullanıcı</th>
+                  <th>En İyi Quiz</th>
+                  <th>Doğru/Toplam</th>
+                  <th>Puan</th>
+                  <th>Tarih</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${entries.map((r, i) => {
+                  const rankClass = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
+                  const youBadge = r.userId === user.id ? ' <span class="badge">sen</span>' : "";
+                  return `
+                    <tr>
+                      <td class="${rankClass}">#${i + 1}</td>
+                      <td>${escapeHtml(r.userName)}${youBadge}</td>
+                      <td>${escapeHtml(r.quizTitle || "-")}</td>
+                      <td>${r.correctAnswers} / ${r.totalQuestions}</td>
+                      <td><strong>${r.score}</strong></td>
+                      <td>${formatDate(r.createdAt)}</td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

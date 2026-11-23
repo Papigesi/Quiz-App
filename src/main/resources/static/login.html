@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Giriş Yap - QuizApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container-narrow">
+    <div class="card">
+      <h1 style="text-align:center; color:var(--primary)">QuizApp</h1>
+      <p class="muted" style="text-align:center; margin-top:0">Giriş yap ve quiz çözmeye başla</p>
+
+      <div id="alert-box"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">E-posta</label>
+          <input id="email" type="email" class="form-control" autocomplete="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Şifre</label>
+          <input id="password" type="password" class="form-control" autocomplete="current-password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
+      </form>
+
+      <p style="text-align:center; margin-top:1rem; margin-bottom:0">
+        Hesabın yok mu? <a href="/register.html">Kayıt ol</a>
+      </p>
+
+      <p class="muted" style="text-align:center; margin-top:1rem; font-size:.8rem">
+        Demo: admin@quiz.com / admin123 &middot; user@quiz.com / user123
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    if (auth.getUser()) {
+      window.location.href = auth.isAdmin() ? "/admin.html" : "/index.html";
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearAlert("alert-box");
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      try {
+        const user = await api.login(email, password);
+        auth.setUser(user);
+        window.location.href = user.role === "ADMIN" ? "/admin.html" : "/index.html";
+      } catch (err) {
+        showAlert("alert-box", err.message || "Giriş başarısız");
+      }
+    });
+  </script>
+</body>
+</html>
